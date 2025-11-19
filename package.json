@@ -1,5 +1,5 @@
 {
-  "name": "bytez-speech-api",
+  "name": "ai-gateway",
   "version": "1.0.0",
   "description": "TypeScript Koa.js server for Bytez speech API",
   "main": "dist/index.js",

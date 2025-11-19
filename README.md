@@ -1,31 +1,44 @@
-# Empty Starter Kit for JavaScript
+# AI Gateway
 
-[![Deploy to Fastly](https://deploy.edgecompute.app/button)](https://deploy.edgecompute.app/deploy)
+A TypeScript Koa.js server implementation for AI services gateway.
 
-An empty application template for the Fastly Compute environment which returns a 200 OK response.
+## Project Structure
 
-**For more details about other starter kits for Compute, see the [Fastly developer hub](https://developer.fastly.com/solutions/starters)**
+- `src/index.ts`: Main server entry point
+- `src/api.ts`: API route handlers
+- `package.json`: Project dependencies and scripts
+- `tsconfig.json`: TypeScript configuration
 
-## Running the application
+## Getting Started
 
-To create an application using this starter kit, create a new directory for your application and switch to it, and then type the following command:
+### Prerequisites
+- Node.js >= 18.0.0
+- npm
 
+### Installation
 ```shell
-npm create @fastly/compute@latest -- --language=javascript --starter-kit=empty
+npm install
 ```
 
-To build and run your new application in the local development environment, type the following command:
-
+### Development
+To run in development mode with hot reload:
 ```shell
-npm run start
+npm run dev
 ```
 
-To build and deploy your application to your Fastly account, type the following command. The first time you deploy the application, you will be prompted to create a new service in your account.
-
+### Production
+To build and run in production:
 ```shell
-npm run deploy
+npm run build && npm start
 ```
 
-## Security issues
+## API Features
+- Koa.js web server
+- TypeScript support
+- AI services gateway implementation
 
-Please see our [SECURITY.md](SECURITY.md) for guidance on reporting security-related issues.
+## Scripts
+- `build`: Compile TypeScript to JavaScript
+- `start`: Run the production server
+- `dev`: Run the development server with ts-node
+- `test`: (Placeholder for future tests)

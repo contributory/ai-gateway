@@ -31,7 +31,7 @@ export async function generateSpeechBase64(
   modelId: string,
   apiKey: string
 ): Promise<SpeechResponse> {
-  const url = `https://api.bytez.com/models/v2/suno/${modelId}`;
+  const url = `https://api.bytez.com/models/v2/${modelId}`;
   const options = {
     method: "POST",
     headers: {
