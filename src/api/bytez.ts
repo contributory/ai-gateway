@@ -90,6 +90,11 @@ export async function listBytezModels(): Promise<ImageModel[]> {
 
 async function blobToBase64(blob: Blob): Promise<string> {
   const arrayBuffer = await blob.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  return buffer.toString("base64");
+  // Convert ArrayBuffer to base64 string using built-in functions
+  let binary = '';
+  const bytes = new Uint8Array(arrayBuffer);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+ return btoa(binary);
 }
