@@ -3,6 +3,8 @@ import Router from "@koa/router";
 import type { Context } from "koa";
 // @ts-ignore
 import koaBody from "koa-body";
+import swaggerJSDoc from "swagger-jsdoc";
+import { koaSwagger } from "koa2-swagger-ui";
 
 import { listBytezModels, generateImage } from "./api/bytez.js";
 import { generateImageHorde, getHordeModels } from "./api/horde.js";
@@ -112,6 +114,37 @@ hordeRouter.get("/models", async (ctx: Context) => {
   }
 });
 
+// Swagger setup
+const options = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Bytez Proxy API",
+      version: "1.0.0",
+      description: "A proxy server for Bytez and AI Horde APIs with Swagger documentation",
+    },
+    servers: [
+      {
+        url: `http://localhost:${process.env.PORT || 3000}`,
+        description: "Development server",
+      },
+    ],
+  },
+  apis: ["./src/index.ts"], // files containing OpenAPI definitions
+};
+
+const swaggerSpec = swaggerJSDoc(options) as any;
+
+// Swagger UI middleware
+app.use(
+  koaSwagger({
+    routePrefix: "/docs",
+    swaggerOptions: {
+      spec: swaggerSpec,
+    },
+  })
+);
+
 app.use(bytezRouter.routes()).use(bytezRouter.allowedMethods());
 app.use(hordeRouter.routes()).use(hordeRouter.allowedMethods());
 
@@ -120,4 +153,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🔊 Bytez Endpoint: http://localhost:${PORT}/bytez/v1`);
   console.log(`🎨 AI Horde Endpoint: http://localhost:${PORT}/ai-horde/v1`);
+  console.log(`📖 Swagger Docs: http://localhost:${PORT}/docs`);
 });
