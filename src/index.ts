@@ -16,6 +16,56 @@ app.use(koaBody({ multipart: true, jsonLimit: "10mb" }));
 // --- ROUTER 1: BYTEZ (Text-to-Speech) ---
 const bytezRouter = new Router({ prefix: "/bytez/v1" });
 
+/**
+ * @openapi
+ * /images/generations:
+ *   post:
+ *     tags:
+ *       - Bytez
+ *     summary: Generate images using Bytez API
+ *     description: Creates images based on a text prompt using the Bytez service
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 description: The text prompt to generate images from
+ *                 example: "A beautiful landscape"
+ *               model:
+ *                 type: string
+ *                 description: The model to use for image generation
+ *                 example: "stable-diffusion-v1-5"
+ *             required:
+ *               - prompt
+ *     responses:
+ *       200:
+ *         description: Successful image generation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       url:
+ *                         type: string
+ *                         description: URL of the generated image
+ *       400:
+ *         description: Missing required parameters
+ *       401:
+ *         description: Unauthorized - missing or invalid API key
+ *       500:
+ *         description: Internal server error
+ */
 bytezRouter.post("/images/generations", async (ctx: Context) => {
   const auth = ctx.headers.authorization;
   if (!auth) {
@@ -52,6 +102,39 @@ bytezRouter.post("/images/generations", async (ctx: Context) => {
   }
 });
 
+/**
+ * @openapi
+ * /models:
+ *   get:
+ *     tags:
+ *       - Bytez
+ *     summary: Get available models
+ *     description: Returns a list of available models for the Bytez service
+ *     responses:
+ *       200:
+ *         description: List of available models
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 object:
+ *                   type: string
+ *                   example: "list"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         description: Model identifier
+ *                       name:
+ *                         type: string
+ *                         description: Model name
+ *       500:
+ *         description: Internal server error
+ */
 bytezRouter.get("/models", async (ctx: Context) => {
   try {
     const models = await listBytezModels();
@@ -65,6 +148,48 @@ bytezRouter.get("/models", async (ctx: Context) => {
 // --- ROUTER 2: AI HORDE (Image Generation) ---
 const hordeRouter = new Router({ prefix: "/ai-horde/v1" });
 
+/**
+ * @openapi
+ * /images/generations:
+ *   post:
+ *     tags:
+ *       - AI Horde
+ *     summary: Generate images using AI Horde
+ *     description: Creates images based on a text prompt using the AI Horde service
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 description: The text prompt to generate images from
+ *                 example: "A beautiful landscape"
+ *             required:
+ *               - prompt
+ *     responses:
+ *       200:
+ *         description: Successful image generation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       url:
+ *                         type: string
+ *                         description: URL of the generated image
+ *       400:
+ *         description: Missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
 hordeRouter.post("/images/generations", async (ctx: Context) => {
   const userApiKey =
     ctx.headers.authorization || (ctx.headers["apikey"] as string) || "";
@@ -99,6 +224,39 @@ hordeRouter.post("/images/generations", async (ctx: Context) => {
   }
 });
 
+/**
+ * @openapi
+ * /models:
+ *   get:
+ *     tags:
+ *       - AI Horde
+ *     summary: Get available models
+ *     description: Returns a list of available models for the AI Horde service
+ *     responses:
+ *       200:
+ *         description: List of available models
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 object:
+ *                   type: string
+ *                   example: "list"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         description: Model identifier
+ *                       name:
+ *                         type: string
+ *                         description: Model name
+ *       500:
+ *         description: Internal server error
+ */
 hordeRouter.get("/models", async (ctx: Context) => {
   try {
     const models = await getHordeModels();
