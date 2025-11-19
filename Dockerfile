@@ -1,6 +1,6 @@
 FROM node
 
-RUN adduser --disabled-password -m -s /bin/bash appuser
+RUN adduser -m -s /bin/bash appuser
 WORKDIR /home/appuser
 
 COPY package*.json ./ 
