@@ -90,7 +90,7 @@ bytezRouter.post("/images/generations", async (ctx: Context) => {
       ctx.body = { error: "Missing API key" };
       return;
     }
-    
+
     const response = await generateImage(prompt, body.model, apiKey);
 
     ctx.status = 200;
@@ -279,12 +279,13 @@ const options = {
     info: {
       title: "Bytez Proxy API",
       version: "1.0.0",
-      description: "A proxy server for Bytez and AI Horde APIs with Swagger documentation",
+      description:
+        "A proxy server for Bytez and AI Horde APIs with Swagger documentation",
     },
     servers: [
       {
-        url: `http://localhost:${process.env.PORT || 3000}`,
-        description: "Development server",
+        url: ``,
+        description: "Deployment server",
       },
     ],
     components: {
