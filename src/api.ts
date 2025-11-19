@@ -1,3 +1,5 @@
+import { Readable } from "stream";
+
 interface SpeechModel {
   id: string;
   object: string;
@@ -8,60 +10,75 @@ interface SpeechModel {
   parent: null;
 }
 
-interface SpeechResponse {
-  modelId: string;
-  data: ArrayBuffer;
-}
-
-export async function generateSpeechBase64(
+// Trả về Readable stream của Node.js để Koa xử lý
+export async function generateSpeechStream(
   text: string,
   modelId: string,
   apiKey: string
-): Promise<SpeechResponse> {
+): Promise<Readable> {
   // Bytez endpoint
   const url = `https://api.bytez.com/models/v2/${modelId}`;
-  
+
   const options = {
     method: "POST",
     headers: {
-      Authorization: apiKey, // Lưu ý: kiểm tra xem Bytez cần "Bearer " hay chỉ apiKey thô
+      // Bytez thường dùng Bearer token, nếu api key của bạn chưa có chữ Bearer thì thêm vào
+      // Nếu apiKey truyền vào đã có 'Bearer ' thì giữ nguyên.
+      // Ở đây giả định apiKey truyền vào là raw key.
+      Authorization: apiKey.startsWith("Bearer ") ? apiKey : `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ text }),
   };
 
+  // Bước 1: Gọi Bytez để trigger tạo audio
   const response = await fetch(url, options);
-  
+
   if (!response.ok) {
     const errText = await response.text();
     throw new Error(`Bytez API Error: ${response.status} - ${errText}`);
   }
 
   const data = await response.json();
-  
+
   // Bytez trả về link download trong data.output
   if (!data.output) {
-     throw new Error("No output URL returned from Bytez");
+    throw new Error("No output URL returned from Bytez");
   }
 
-  const output = await fetch(data.output);
-  return { modelId, data: await output.arrayBuffer() };
+  // Bước 2: Gọi vào link output để lấy luồng dữ liệu
+  const audioResponse = await fetch(data.output);
+
+  if (!audioResponse.ok || !audioResponse.body) {
+    throw new Error("Failed to fetch audio stream from Bytez output URL");
+  }
+
+  // Chuyển đổi Web Stream (fetch) sang Node Stream (cho Koa)
+  // @ts-ignore: Node 18+ hỗ trợ Readable.fromWeb, nếu TS báo lỗi type thì ignore
+  return Readable.fromWeb(audioResponse.body);
 }
 
 export async function listSpeechModels(): Promise<SpeechModel[]> {
   const url = "https://api.bytez.com/models/v2/list/models?task=text-to-speech";
   const options = {
     method: "GET",
-    headers: { Authorization: process.env.BYTEZ_API_KEY || "" },
+    headers: {
+      Authorization: process.env.BYTEZ_API_KEY
+        ? `Bearer ${process.env.BYTEZ_API_KEY}`
+        : "",
+    },
   };
 
   try {
     const response = await fetch(url, options);
-    const { error, output } = await response.json();
+    const data = await response.json();
 
-    if (error) {
-      console.error("Failed to list models:", error);
-      throw new Error("Failed to fetch models");
+    // Xử lý cấu trúc trả về của Bytez (đôi khi là data.output, đôi khi là mảng trực tiếp)
+    const output = data.output || [];
+
+    if (data.error) {
+      console.error("Failed to list models:", data.error);
+      throw new Error("Failed to fetch models from Bytez");
     }
 
     return output.map((model: any) => ({
@@ -75,6 +92,7 @@ export async function listSpeechModels(): Promise<SpeechModel[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch models:", error);
-    throw new Error("Failed to fetch models");
+    // Trả về mảng rỗng hoặc throw tùy nhu cầu
+    return [];
   }
 }

@@ -1,6 +1,6 @@
 import Koa from "koa";
 import Router from "@koa/router";
-import { listSpeechModels, generateSpeechBase64 } from "./api";
+import { listSpeechModels, generateSpeechStream } from "./api";
 import type { Context } from "koa";
 // @ts-ignore
 import koaBody from "koa-body";
@@ -8,7 +8,8 @@ import koaBody from "koa-body";
 const app = new Koa();
 const router = new Router();
 
-app.use(koaBody());
+// Tăng limit body vì đôi khi text input rất dài
+app.use(koaBody({ multipart: true, jsonLimit: "10mb" }));
 
 // Endpoint liệt kê models
 router.get("/v1/models", async (ctx: Context) => {
@@ -19,12 +20,10 @@ router.get("/v1/models", async (ctx: Context) => {
       data: models,
     };
     ctx.status = 200;
-    ctx.type = "application/json";
   } catch (error) {
     console.error("Models endpoint error:", error);
     ctx.body = { error: "Internal server error" };
     ctx.status = 500;
-    ctx.type = "application/json";
   }
 });
 
@@ -42,22 +41,20 @@ router.post("/v1/audio/speech", async (ctx: Context) => {
     return;
   }
 
-  const apiKey = authorization.replace("Bearer ", "");
+  // Giữ nguyên raw token để xử lý bên api.ts (hoặc tách ra tùy bạn)
+  const apiKey = authorization;
 
   try {
     const body = ctx.request.body as {
-      input?: string; // OpenAI chuẩn dùng 'input'
-      text?: string; // Hỗ trợ fallback
+      input?: string;
+      text?: string;
       model?: string;
       voice?: string;
       response_format?: string;
+      speed?: number; // OpenAI có hỗ trợ speed
     };
 
-    // 1. Lấy input (OpenAI dùng 'input', code cũ dùng 'text')
     const textToSpeech = body.input || body.text;
-
-    // 2. Lấy các tham số khác
-    // voice bị bỏ qua vì Bytez không hỗ trợ, nhưng vẫn nhận để không lỗi request
     const { model = "tts-1", response_format = "mp3" } = body;
 
     if (!textToSpeech) {
@@ -65,39 +62,43 @@ router.post("/v1/audio/speech", async (ctx: Context) => {
         error: {
           message: "Missing required parameter: 'input'",
           type: "invalid_request_error",
+          param: "input",
+          code: "missing_required_parameter",
         },
       };
       ctx.status = 400;
       return;
     }
 
-    // 3. Gọi API Bytez
-    const { data } = await generateSpeechBase64(textToSpeech, model, apiKey);
+    // Lấy stream từ API
+    const audioStream = await generateSpeechStream(textToSpeech, model, apiKey);
 
-    // 4. Trả về kết quả chuẩn OpenAI
-    // Convert ArrayBuffer sang Node.js Buffer để Koa xử lý đúng
-    ctx.body = Buffer.from(data);
-
+    // Set headers
     ctx.status = 200;
     ctx.type = getContentType(response_format);
 
-    // Các headers bổ sung cho client biết đây là file tải về
-    ctx.set(
-      "Content-Disposition",
-      `attachment; filename="speech.${response_format}"`
-    );
-    ctx.set("Content-Transfer-Encoding", "binary");
+    // OpenAI thường trả về Transfer-Encoding: chunked cho stream
+    // Koa sẽ tự động xử lý chunked nếu body là stream
+    ctx.set("Cache-Control", "no-cache");
+
+    // Nếu muốn client tải về:
+    // ctx.set("Content-Disposition", `attachment; filename="speech.${response_format}"`);
+
+    // Pipe stream trực tiếp vào body
+    ctx.body = audioStream;
   } catch (error: any) {
     console.error("TTS endpoint error:", error);
-    // Trả về lỗi format JSON giống OpenAI để client dễ debug
+    // Trả lỗi JSON chuẩn OpenAI
+    ctx.status = 500;
+    ctx.type = "application/json";
     ctx.body = {
       error: {
         message: error.message || "Internal server error",
         type: "api_error",
+        param: null,
+        code: null,
       },
     };
-    ctx.status = 500;
-    ctx.type = "application/json";
   }
 });
 
