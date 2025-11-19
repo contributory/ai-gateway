@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY --chown=appuser:appgroup package*.json ./ 
 RUN npm ci --omit=dev
-COPY . .
+COPY --chown=appuser:appgroup . .
 RUN npm run build
 
 EXPOSE 3000
