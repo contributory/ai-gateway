@@ -4,8 +4,8 @@ import type { Context } from "koa";
 // @ts-ignore
 import koaBody from "koa-body";
 
-import { listBytezModels, generateImage } from "./api/bytez";
-import { generateImageHorde, getHordeModels } from "./api/horde";
+import { listBytezModels, generateImage } from "./api/bytez.js";
+import { generateImageHorde, getHordeModels } from "./api/horde.js";
 
 const app = new Koa();
 
