@@ -1,12 +1,15 @@
 FROM node
 
+# Tạo user
 RUN useradd -m -s /bin/bash appuser
 
-USER appuser
 WORKDIR /home/appuser
 
-COPY package*.json ./ 
-COPY . .
+COPY --chown=appuser:appuser package*.json ./ 
+COPY --chown=appuser:appuser . .
+
+USER appuser
+
 RUN npm install
 RUN npm run build
 
