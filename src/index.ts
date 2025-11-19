@@ -287,6 +287,15 @@ const options = {
         description: "Development server",
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "API Key",
+        },
+      },
+    },
   },
   apis: ["./src/index.ts"], // files containing OpenAPI definitions
 };
