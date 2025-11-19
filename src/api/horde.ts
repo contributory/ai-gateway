@@ -12,17 +12,10 @@ interface HordePayload {
   models?: string[];
 }
 
-// Fallback models in order of preference
-const FALLBACK_MODELS = [
-  ["stable_diffusion"], // Preferred
-  ["stable_diffusion_2.1"], // Alternative
-  ["stable_diffusion_1.5"], // Legacy
-  [], // No specific model, let horde choose
-];
-
 export async function generateImageHorde(
   payload: any,
   responseFormat: any,
+  modelId: string,
   userApiKey?: string
 ): Promise<any> {
   const rawKey = userApiKey
@@ -42,63 +35,58 @@ export async function generateImageHorde(
   let submissionError: Error | null = null;
   let hordePayload: HordePayload | null = null;
 
-  for (const modelList of FALLBACK_MODELS) {
-    hordePayload = {
-      prompt: payload.prompt,
-      params: {
-        sampler_name: "k_euler_a",
-        cfg_scale: 7.5,
-        steps: 30,
-        n: payload.n || 1,
+  hordePayload = {
+    prompt: payload.prompt,
+    params: {
+      sampler_name: "k_euler_a",
+      cfg_scale: 7.5,
+      steps: 30,
+      n: payload.n || 1,
+    },
+    nsfw: true,
+    censor_nsfw: false,
+    models: modelId === "auto" ? [] : [modelId],
+  };
+
+  // Apply size parameters after creating the payload
+  if (payload.size) {
+    const [width, height] = payload.size.split("x").map(Number);
+    if (width && height) {
+      hordePayload.params.width = width;
+      hordePayload.params.height = height;
+    }
+  } else {
+    hordePayload.params.width = 512;
+    hordePayload.params.height = 512;
+  }
+
+  if (payload.params) {
+    hordePayload.params = { ...hordePayload.params, ...payload.params };
+  }
+  if (payload.models) hordePayload.models = payload.models;
+
+  try {
+    const response = await fetch(`${BASE_URL}/generate/async`, {
+      method: "POST",
+      headers: {
+        apikey: apiKey,
+        "Client-Agent": CLIENT_AGENT,
+        "Content-Type": "application/json",
       },
-      nsfw: true,
-      censor_nsfw: false,
-      models: modelList.length > 0 ? modelList : undefined,
-    };
+      body: JSON.stringify(hordePayload),
+    });
 
-    // Apply size parameters after creating the payload
-    if (payload.size) {
-      const [width, height] = payload.size.split("x").map(Number);
-      if (width && height) {
-        hordePayload.params.width = width;
-        hordePayload.params.height = height;
-      }
-    } else {
-      hordePayload.params.width = 512;
-      hordePayload.params.height = 512;
+    if (!response.ok) {
+      const err = await response.json();
+      submissionError = new Error(
+        err.message || "Failed to submit task to AI Horde"
+      );
     }
 
-    if (payload.params) {
-      hordePayload.params = { ...hordePayload.params, ...payload.params };
-    }
-    if (payload.models) hordePayload.models = payload.models;
-
-    try {
-      const response = await fetch(`${BASE_URL}/generate/async`, {
-        method: "POST",
-        headers: {
-          apikey: apiKey,
-          "Client-Agent": CLIENT_AGENT,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(hordePayload),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        submissionError = new Error(
-          err.message || "Failed to submit task to AI Horde"
-        );
-        continue; // Try next model configuration
-      }
-
-      // If submission succeeds, store the response and break out of the loop
-      successfulResponse = response;
-      break;
-    } catch (error) {
-      submissionError = error as Error;
-      continue; // Try next model configuration
-    }
+    // If submission succeeds, store the response and break out of the loop
+    successfulResponse = response;
+  } catch (error) {
+    submissionError = error as Error;
   }
 
   // If all model configurations failed, throw the last error

@@ -41,7 +41,7 @@ export async function generateImage(
     };
   }
 
-  const base64Image = await blobToBase64(output);
+  const base64Image = await urlToBase64(output);
   return {
     created: Math.floor(Date.now() / 1000),
     data: [
@@ -88,13 +88,15 @@ export async function listBytezModels(): Promise<ImageModel[]> {
   }
 }
 
-async function blobToBase64(blob: Blob): Promise<string> {
+async function urlToBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  const blob = await response.blob();
   const arrayBuffer = await blob.arrayBuffer();
   // Convert ArrayBuffer to base64 string using built-in functions
-  let binary = '';
+  let binary = "";
   const bytes = new Uint8Array(arrayBuffer);
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
- return btoa(binary);
+  return btoa(binary);
 }

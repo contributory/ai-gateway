@@ -100,3 +100,5 @@ dist
 .vscode
 *.swp
 *.swo
+*.py
+test.py
