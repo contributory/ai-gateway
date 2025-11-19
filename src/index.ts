@@ -3,69 +3,17 @@ import Router from "@koa/router";
 import type { Context } from "koa";
 // @ts-ignore
 import koaBody from "koa-body";
-import swaggerJSDoc from "swagger-jsdoc";
-import { koaSwagger } from "koa2-swagger-ui";
 
 import { listBytezModels, generateImage } from "./api/bytez.js";
 import { generateImageHorde, getHordeModels } from "./api/horde.js";
 
 const app = new Koa();
 
-app.use(koaBody({ multipart: true, jsonLimit: "10mb" }));
+app.use(koaBody({ multipart: true, jsonLimit: "20mb" }));
 
 // --- ROUTER 1: BYTEZ (Text-to-Speech) ---
 const bytezRouter = new Router({ prefix: "/bytez/v1" });
 
-/**
- * @openapi
- * /images/generations:
- *   post:
- *     tags:
- *       - Bytez
- *     summary: Generate images using Bytez API
- *     description: Creates images based on a text prompt using the Bytez service
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               prompt:
- *                 type: string
- *                 description: The text prompt to generate images from
- *                 example: "A beautiful landscape"
- *               model:
- *                 type: string
- *                 description: The model to use for image generation
- *                 example: "stable-diffusion-v1-5"
- *             required:
- *               - prompt
- *     responses:
- *       200:
- *         description: Successful image generation
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       url:
- *                         type: string
- *                         description: URL of the generated image
- *       400:
- *         description: Missing required parameters
- *       401:
- *         description: Unauthorized - missing or invalid API key
- *       500:
- *         description: Internal server error
- */
 bytezRouter.post("/images/generations", async (ctx: Context) => {
   const auth = ctx.headers.authorization;
   if (!auth) {
@@ -77,6 +25,7 @@ bytezRouter.post("/images/generations", async (ctx: Context) => {
   try {
     const body = ctx.request.body as any;
     const prompt = body.prompt;
+    const responseFormat = body.response_format;
 
     if (!prompt) {
       ctx.status = 400;
@@ -91,7 +40,12 @@ bytezRouter.post("/images/generations", async (ctx: Context) => {
       return;
     }
 
-    const response = await generateImage(prompt, body.model, apiKey);
+    const response = await generateImage(
+      prompt,
+      body.model,
+      apiKey,
+      responseFormat
+    );
 
     ctx.status = 200;
     ctx.body = response;
@@ -102,39 +56,6 @@ bytezRouter.post("/images/generations", async (ctx: Context) => {
   }
 });
 
-/**
- * @openapi
- * /models:
- *   get:
- *     tags:
- *       - Bytez
- *     summary: Get available models
- *     description: Returns a list of available models for the Bytez service
- *     responses:
- *       200:
- *         description: List of available models
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 object:
- *                   type: string
- *                   example: "list"
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         description: Model identifier
- *                       name:
- *                         type: string
- *                         description: Model name
- *       500:
- *         description: Internal server error
- */
 bytezRouter.get("/models", async (ctx: Context) => {
   try {
     const models = await listBytezModels();
@@ -148,48 +69,6 @@ bytezRouter.get("/models", async (ctx: Context) => {
 // --- ROUTER 2: AI HORDE (Image Generation) ---
 const hordeRouter = new Router({ prefix: "/ai-horde/v1" });
 
-/**
- * @openapi
- * /images/generations:
- *   post:
- *     tags:
- *       - AI Horde
- *     summary: Generate images using AI Horde
- *     description: Creates images based on a text prompt using the AI Horde service
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               prompt:
- *                 type: string
- *                 description: The text prompt to generate images from
- *                 example: "A beautiful landscape"
- *             required:
- *               - prompt
- *     responses:
- *       200:
- *         description: Successful image generation
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       url:
- *                         type: string
- *                         description: URL of the generated image
- *       400:
- *         description: Missing required parameters
- *       500:
- *         description: Internal server error
- */
 hordeRouter.post("/images/generations", async (ctx: Context) => {
   const userApiKey =
     ctx.headers.authorization || (ctx.headers["apikey"] as string) || "";
@@ -208,7 +87,8 @@ hordeRouter.post("/images/generations", async (ctx: Context) => {
       return;
     }
 
-    const response = await generateImageHorde(body, userApiKey);
+    const responseFormat = body.response_format;
+    const response = await generateImageHorde(body, responseFormat, userApiKey);
 
     ctx.status = 200;
     ctx.body = response;
@@ -224,39 +104,6 @@ hordeRouter.post("/images/generations", async (ctx: Context) => {
   }
 });
 
-/**
- * @openapi
- * /models:
- *   get:
- *     tags:
- *       - AI Horde
- *     summary: Get available models
- *     description: Returns a list of available models for the AI Horde service
- *     responses:
- *       200:
- *         description: List of available models
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 object:
- *                   type: string
- *                   example: "list"
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         description: Model identifier
- *                       name:
- *                         type: string
- *                         description: Model name
- *       500:
- *         description: Internal server error
- */
 hordeRouter.get("/models", async (ctx: Context) => {
   try {
     const models = await getHordeModels();
@@ -272,47 +119,6 @@ hordeRouter.get("/models", async (ctx: Context) => {
   }
 });
 
-// Swagger setup
-const options = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "Bytez Proxy API",
-      version: "1.0.0",
-      description:
-        "A proxy server for Bytez and AI Horde APIs with Swagger documentation",
-    },
-    servers: [
-      {
-        url: ``,
-        description: "Deployment server",
-      },
-    ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "API Key",
-        },
-      },
-    },
-  },
-  apis: ["./src/index.ts"], // files containing OpenAPI definitions
-};
-
-const swaggerSpec = swaggerJSDoc(options) as any;
-
-// Swagger UI middleware
-app.use(
-  koaSwagger({
-    routePrefix: "/docs",
-    swaggerOptions: {
-      spec: swaggerSpec,
-    },
-  })
-);
-
 app.use(bytezRouter.routes()).use(bytezRouter.allowedMethods());
 app.use(hordeRouter.routes()).use(hordeRouter.allowedMethods());
 
@@ -321,5 +127,4 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🔊 Bytez Endpoint: http://localhost:${PORT}/bytez/v1`);
   console.log(`🎨 AI Horde Endpoint: http://localhost:${PORT}/ai-horde/v1`);
-  console.log(`📖 Swagger Docs: http://localhost:${PORT}/docs`);
 });

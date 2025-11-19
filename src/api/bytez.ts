@@ -13,7 +13,8 @@ interface ImageModel {
 export async function generateImage(
   prompt: string,
   modelId: string,
-  apiKey: string
+  apiKey: string,
+  responseFormat: string
 ): Promise<any> {
   const sdk = new Bytez(apiKey);
   const model = sdk.model(modelId);
@@ -28,12 +29,24 @@ export async function generateImage(
   if (!output) {
     throw new Error("No output URL returned from Bytez");
   }
+  if (responseFormat === "url") {
+    return {
+      created: Math.floor(Date.now() / 1000),
+      data: [
+        {
+          url: output,
+          revised_prompt: prompt,
+        },
+      ],
+    };
+  }
 
+  const base64Image = await blobToBase64(output);
   return {
     created: Math.floor(Date.now() / 1000),
     data: [
       {
-        url: output,
+        b64_json: base64Image,
         revised_prompt: prompt,
       },
     ],
@@ -73,4 +86,10 @@ export async function listBytezModels(): Promise<ImageModel[]> {
     console.error("Failed to fetch models:", error);
     return [];
   }
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const arrayBuffer = await blob.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  return buffer.toString("base64");
 }

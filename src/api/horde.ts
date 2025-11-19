@@ -14,6 +14,7 @@ interface HordePayload {
 
 export async function generateImageHorde(
   payload: any,
+  responseFormat: any,
   userApiKey?: string
 ): Promise<any> {
   const rawKey = userApiKey
@@ -102,13 +103,28 @@ export async function generateImageHorde(
   }
 
   if (!result) throw new Error("Request timed out or failed processing");
-
+  if (responseFormat === "url") {
+    return {
+      created: Math.floor(Date.now() / 1000),
+      data: result.map((img: any) => ({
+        url: img.img,
+        revised_prompt: payload.prompt,
+      })),
+    };
+  }
+  const images: Array<string> = result.map(async (img: any) => {
+    const response = await fetch(img.img);
+    const blob = await response.blob();
+    const b64Json = await blobToBase64(blob);
+    return b64Json;
+  });
   return {
     created: Math.floor(Date.now() / 1000),
-    data: result.map((img: any) => ({
-      url: img.img,
-      revised_prompt: payload.prompt,
-    })),
+    data: [
+      {
+        images,
+      },
+    ],
   };
 }
 
@@ -141,4 +157,10 @@ export async function getHordeModels() {
       permission: [],
     },
   ];
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const arrayBuffer = await blob.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  return buffer.toString("base64");
 }
