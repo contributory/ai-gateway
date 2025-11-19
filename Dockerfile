@@ -1,6 +1,6 @@
 FROM node
 
-RUN adduser -m -s /bin/bash appuser
+RUN useradd -m -s /bin/bash appuser
 WORKDIR /home/appuser
 
 COPY package*.json ./ 
