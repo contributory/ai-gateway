@@ -4,7 +4,6 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
 COPY --chown=appuser:appgroup package*.json ./ 
-RUN npm ci --omit=dev
 COPY --chown=appuser:appgroup . .
 RUN npm run build
 
