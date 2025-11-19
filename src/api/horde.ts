@@ -1,4 +1,3 @@
-// horde.ts
 const BASE_URL = "https://stablehorde.net/api/v2";
 const CLIENT_AGENT = "Koa_Proxy_Server:1.0:admin";
 const PUBLIC_API_KEY = "0000000000";
@@ -129,18 +128,14 @@ export async function getHordeModels() {
 
     const data = await response.json();
 
-    // data trả về là một mảng: [{ name: "stable_diffusion", count: 20, ... }, ...]
-    // Chúng ta sort theo số lượng worker (count) giảm dần để model phổ biến lên đầu
     const sortedModels = data.sort((a: any, b: any) => b.count - a.count);
 
-    // Map sang chuẩn OpenAI Model Object
     return sortedModels.map((model: any) => ({
       id: model.name,
       object: "model",
-      created: Date.now(), // AI Horde không trả về ngày tạo, dùng tạm time hiện tại
+      created: Date.now(),
       owned_by: "AI Horde Workers",
       permission: [],
-      // Thêm thông tin phụ để biết độ mạnh của model (số lượng worker)
       meta: {
         workers: model.count,
         queued: model.queued,
@@ -149,6 +144,6 @@ export async function getHordeModels() {
     }));
   } catch (error) {
     console.error("Get Horde Models Error:", error);
-    return []; // Trả về mảng rỗng nếu lỗi để không crash app
+    return [];
   }
 }
