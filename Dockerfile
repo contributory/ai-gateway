@@ -1,11 +1,10 @@
-FROM aergo/node
+FROM node
 
+RUN adduser --disabled-password --gecos "" appuser
 
 COPY package*.json ./ 
 COPY . .
 RUN npm run build
-RUN addgroup -S appgroup
-USER appuser
 
 EXPOSE 3000
 CMD ["npm", "start"]
