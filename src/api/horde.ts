@@ -51,8 +51,8 @@ export async function generateImageHorde(
         steps: 30,
         n: payload.n || 1,
       },
-      nsfw: false,
-      censor_nsfw: true,
+      nsfw: true,
+      censor_nsfw: false,
       models: modelList.length > 0 ? modelList : undefined,
     };
 
@@ -86,7 +86,9 @@ export async function generateImageHorde(
 
       if (!response.ok) {
         const err = await response.json();
-        submissionError = new Error(err.message || "Failed to submit task to AI Horde");
+        submissionError = new Error(
+          err.message || "Failed to submit task to AI Horde"
+        );
         continue; // Try next model configuration
       }
 
@@ -101,7 +103,12 @@ export async function generateImageHorde(
 
   // If all model configurations failed, throw the last error
   if (!successfulResponse || !hordePayload) {
-    throw submissionError || new Error("Failed to submit task to AI Horde with any model configuration");
+    throw (
+      submissionError ||
+      new Error(
+        "Failed to submit task to AI Horde with any model configuration"
+      )
+    );
   }
 
   const data = await successfulResponse.json();
@@ -203,10 +210,10 @@ export async function getHordeModels() {
 async function blobToBase64(blob: Blob): Promise<string> {
   const arrayBuffer = await blob.arrayBuffer();
   // Convert ArrayBuffer to base64 string using built-in functions
-  let binary = '';
+  let binary = "";
   const bytes = new Uint8Array(arrayBuffer);
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
- return btoa(binary);
+  return btoa(binary);
 }
