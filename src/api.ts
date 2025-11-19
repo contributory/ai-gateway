@@ -3,20 +3,7 @@ interface SpeechModel {
   object: string;
   created: number;
   owned_by: string;
-  permission: {
-    id: string;
-    object: string;
-    created: number;
-    allow_create_engine: boolean;
-    allow_sampling: boolean;
-    allow_logprobs: boolean;
-    allow_search_indices: boolean;
-    allow_view: boolean;
-    allow_fine_tuning: boolean;
-    organization: string;
-    group: null;
-    is_blocking: boolean;
-  }[];
+  permission: any[];
   root: string;
   parent: null;
 }
@@ -31,21 +18,33 @@ export async function generateSpeechBase64(
   modelId: string,
   apiKey: string
 ): Promise<SpeechResponse> {
+  // Bytez endpoint
   const url = `https://api.bytez.com/models/v2/${modelId}`;
+  
   const options = {
     method: "POST",
     headers: {
-      Authorization: apiKey,
+      Authorization: apiKey, // Lưu ý: kiểm tra xem Bytez cần "Bearer " hay chỉ apiKey thô
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ text }),
   };
 
   const response = await fetch(url, options);
-  const data = await response.json();
-  const output = await fetch(data.output);
+  
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Bytez API Error: ${response.status} - ${errText}`);
+  }
 
-  console.log(data);
+  const data = await response.json();
+  
+  // Bytez trả về link download trong data.output
+  if (!data.output) {
+     throw new Error("No output URL returned from Bytez");
+  }
+
+  const output = await fetch(data.output);
   return { modelId, data: await output.arrayBuffer() };
 }
 
@@ -54,7 +53,6 @@ export async function listSpeechModels(): Promise<SpeechModel[]> {
   const options = {
     method: "GET",
     headers: { Authorization: process.env.BYTEZ_API_KEY || "" },
-    body: undefined,
   };
 
   try {
@@ -71,22 +69,7 @@ export async function listSpeechModels(): Promise<SpeechModel[]> {
       object: "model",
       created: Math.floor(Date.now() / 1000),
       owned_by: "bytez",
-      permission: [
-        {
-          id: `modelperm-${model.modelId.replace(/\W/g, "")}`,
-          object: "model_permission",
-          created: Math.floor(Date.now() / 1000),
-          allow_create_engine: false,
-          allow_sampling: true,
-          allow_logprobs: true,
-          allow_search_indices: false,
-          allow_view: true,
-          allow_fine_tuning: false,
-          organization: "*",
-          group: null,
-          is_blocking: false,
-        },
-      ],
+      permission: [],
       root: model.modelId,
       parent: null,
     }));
