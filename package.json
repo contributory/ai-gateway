@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "TypeScript Koa.js server for Bytez speech API",
   "main": "dist/index.js",
-  "type": "commonjs",
+  "type": "module",
   "private": true,
   "dependencies": {
     "@koa/router": "^14.0.0",
+    "bytez.js": "^1.1.18",
     "koa": "^3.1.1",
     "koa-body": "^7.0.0"
   },

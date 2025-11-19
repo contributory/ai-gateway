@@ -17,13 +17,10 @@ export async function generateImageHorde(
   payload: any,
   userApiKey?: string
 ): Promise<any> {
-  // 1. Xác định API Key (Ưu tiên key user gửi, nếu không có dùng key public)
-  // User thường gửi "Bearer <key>", ta cần lọc lấy key thô
   const rawKey = userApiKey
     ? userApiKey.replace("Bearer ", "")
     : PUBLIC_API_KEY;
 
-  // Kiểm tra nếu key rỗng sau khi replace
   const apiKey = rawKey.trim() === "" ? PUBLIC_API_KEY : rawKey;
 
   console.log(
@@ -32,9 +29,6 @@ export async function generateImageHorde(
     }`
   );
 
-  // 2. Mapping tham số OpenAI (nếu client gửi chuẩn OpenAI) sang Horde
-  // OpenAI: { prompt, n, size: "1024x1024" }
-  // Horde: { prompt, params: { width, height, n } }
   const hordePayload: HordePayload = {
     prompt: payload.prompt,
     params: {
@@ -45,10 +39,9 @@ export async function generateImageHorde(
     },
     nsfw: false,
     censor_nsfw: true,
-    models: ["stable_diffusion"], // Model an toàn mặc định
+    models: ["stable_diffusion"],
   };
 
-  // Xử lý kích thước ảnh
   if (payload.size) {
     const [width, height] = payload.size.split("x").map(Number);
     if (width && height) {
@@ -56,18 +49,15 @@ export async function generateImageHorde(
       hordePayload.params.height = height;
     }
   } else {
-    // Default size
     hordePayload.params.width = 512;
     hordePayload.params.height = 512;
   }
 
-  // Nếu client gửi trực tiếp params của Horde thì ghi đè
   if (payload.params) {
     hordePayload.params = { ...hordePayload.params, ...payload.params };
   }
   if (payload.models) hordePayload.models = payload.models;
 
-  // 3. Gửi request tạo ảnh (Async)
   const response = await fetch(`${BASE_URL}/generate/async`, {
     method: "POST",
     headers: {
@@ -86,15 +76,14 @@ export async function generateImageHorde(
   const data = await response.json();
   const id = data.id;
 
-  // 4. Polling: Vòng lặp kiểm tra trạng thái
   let isDone = false;
   let result = null;
   let attempts = 0;
-  const maxAttempts = 60; // Giới hạn khoảng 3 phút (60 * 3s)
+  const maxAttempts = 60;
 
   while (!isDone && attempts < maxAttempts) {
     attempts++;
-    await sleep(3000); // Chờ 3s mỗi lần check
+    await sleep(3000);
 
     const checkResponse = await fetch(`${BASE_URL}/generate/status/${id}`, {
       method: "GET",
@@ -115,11 +104,10 @@ export async function generateImageHorde(
 
   if (!result) throw new Error("Request timed out or failed processing");
 
-  // 5. Format kết quả trả về chuẩn OpenAI
   return {
     created: Math.floor(Date.now() / 1000),
     data: result.map((img: any) => ({
-      url: img.img, // Horde trả về URL ảnh
+      url: img.img,
       revised_prompt: payload.prompt,
     })),
   };
@@ -127,7 +115,6 @@ export async function generateImageHorde(
 
 export async function getHordeModels() {
   try {
-    // Lấy danh sách model đang hoạt động (type=image)
     const response = await fetch(`${BASE_URL}/status/models?type=image`, {
       method: "GET",
       headers: {
