@@ -25,7 +25,7 @@ bytezRouter.post("/images/generations", async (ctx: Context) => {
   try {
     const body = ctx.request.body as any;
     const prompt = body.prompt;
-    const responseFormat = body.response_format;
+    const responseFormat = body.response_format || "b64_json";
 
     if (!prompt) {
       ctx.status = 400;
@@ -87,7 +87,7 @@ hordeRouter.post("/images/generations", async (ctx: Context) => {
       return;
     }
 
-    const responseFormat = body.response_format;
+    const responseFormat = body.response_format || "b64_json";
     const response = await generateImageHorde(body, responseFormat, userApiKey);
 
     ctx.status = 200;
