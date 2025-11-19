@@ -24,15 +24,22 @@ bytezRouter.post("/images/generations", async (ctx: Context) => {
 
   try {
     const body = ctx.request.body as any;
-    const input = body.input;
+    const prompt = body.prompt;
 
-    if (!input) {
+    if (!prompt) {
       ctx.status = 400;
       ctx.body = { error: "Missing 'input' parameter" };
       return;
     }
 
-    const response = await generateImage(input, body.model, auth);
+    const apiKey = auth.replace("Bearer ", "");
+    if (!apiKey) {
+      ctx.status = 401;
+      ctx.body = { error: "Missing API key" };
+      return;
+    }
+    
+    const response = await generateImage(prompt, body.model, apiKey);
 
     ctx.status = 200;
     ctx.body = response;

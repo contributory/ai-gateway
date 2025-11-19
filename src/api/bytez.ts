@@ -11,14 +11,14 @@ interface ImageModel {
 }
 
 export async function generateImage(
-  input: string,
+  prompt: string,
   modelId: string,
   apiKey: string
 ): Promise<any> {
   const sdk = new Bytez(apiKey);
   const model = sdk.model(modelId);
 
-  const { error, output } = await model.run(input);
+  const { error, output } = await model.run(prompt);
   console.log({ error });
 
   if (error) {
@@ -34,7 +34,7 @@ export async function generateImage(
     data: [
       {
         url: output,
-        revised_prompt: input,
+        revised_prompt: prompt,
       },
     ],
   };

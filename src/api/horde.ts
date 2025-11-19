@@ -113,6 +113,7 @@ export async function generateImageHorde(
 }
 
 export async function getHordeModels() {
+  /** 
   try {
     const response = await fetch(`${BASE_URL}/status/models?type=image`, {
       method: "GET",
@@ -129,21 +130,15 @@ export async function getHordeModels() {
     const data = await response.json();
 
     const sortedModels = data.sort((a: any, b: any) => b.count - a.count);
+    */
 
-    return sortedModels.map((model: any) => ({
-      id: model.name,
+  return [
+    {
+      id: "stablehorde",
       object: "model",
       created: Date.now(),
       owned_by: "AI Horde Workers",
       permission: [],
-      meta: {
-        workers: model.count,
-        queued: model.queued,
-        eta: model.eta,
-      },
-    }));
-  } catch (error) {
-    console.error("Get Horde Models Error:", error);
-    return [];
-  }
+    },
+  ];
 }
